@@ -1,3 +1,7 @@
+## Summary
+
+The Nextflow pipelines provided here are designed to analyze microbial single‑isolate sequencing reads (FASTQ format, paired‑end or single‑end). Their purpose is to assign a taxonomic label using either the NCBI or GTDB taxonomy and to detect potential contamination by secondary organisms. The workflow also generates a visual representation of the classification confidence for each candidate species. In addition, it includes a module for constructing and curating a custom reference database.
+
 ## License - please refer to LICENSE.md
 This repository is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
 In summary, you may use, modify, and share this code for non-commercial purposes only, with proper attribution.  
