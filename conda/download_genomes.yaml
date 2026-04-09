@@ -1,0 +1,7 @@
+name: download_genomes
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - pandas == 2.2.2
+  - ncbi-datasets-cli == 18.5.0

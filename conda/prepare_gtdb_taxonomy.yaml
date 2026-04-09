@@ -1,0 +1,7 @@
+name: prepare_gtdb_taxonomy
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - gtdb_to_taxdump == 0.1.9-0
+  - pandas == 2.2.2

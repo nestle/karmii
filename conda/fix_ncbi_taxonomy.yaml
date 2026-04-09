@@ -1,0 +1,6 @@
+name: prepare_ncbi_taxonomy
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - pandas == 2.2.2

@@ -1,0 +1,7 @@
+name: ncbi_bad_states_filtering
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - pandas == 2.2.2
+  - ncbi-datasets-cli == 16.23

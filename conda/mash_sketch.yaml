@@ -1,0 +1,6 @@
+name: mash_sketch 
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - mash == 2.3.0
