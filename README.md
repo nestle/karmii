@@ -118,6 +118,6 @@ confidence_plots/ # plot summary of the analysis
 
 **Example of confidence plot for one sample:**
 
-![Example confidence plot for a single sample. The plot shows 10 lines, with the y‑axis representing the percentage of classified reads and the x‑axis representing the Kraken confidence threshold. Listeria monocytogenes shows a prediction starting at 95% and maintains this value as the confidence threshold increases. The other tested species start at 60% or lower and drop immediately as the confidence threshold increases.](images/confidence_plot.png)
+![Example confidence plot for a single sample. The plot shows 10 lines, with the y‑axis representing the percentage of classified reads and the x‑axis representing the Kraken confidence threshold. Bifidobacterium longum shows a prediction starting at 97% and maintains a value above 90% as the confidence threshold increases to 0.5. The other tested species start at 50% or lower and drop immediately as the confidence threshold increases to be blow 20% at 0.5.](images/confidence_plot.png)
 
 > Signature of a clean isolate of *B. longum*. The percentage reported for each line represents the slope of the curve between confidence x=0.05 and confidence x=0.5.
