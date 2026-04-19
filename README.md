@@ -1,6 +1,12 @@
 ## Summary
 
-The Nextflow pipelines provided here are designed to analyze microbial single‑isolate sequencing reads (FASTQ format, paired‑end or single‑end). Their purpose is to assign a taxonomic label using either the NCBI or GTDB taxonomy and to detect potential contamination by secondary organisms. The workflow also generates a visual representation of the classification confidence for each candidate species. In addition, it includes a module for constructing and curating a custom reference database.
+This Nextflow pipeline analyzes microbial single‑isolate sequencing reads (FASTQ format; paired‑end or single‑end) using a two‑step workflow.
+
+Its purpose is to assign a taxonomic label to the sample using either the NCBI or GTDB taxonomy and to detect potential contamination by secondary organisms at the read level. The workflow also generates a visual representation of the classification confidence for each candidate species.
+
+The first step performs a standard Kraken analysis with a multi‑species database to generate an initial profile of the possible composition. The second step consists of a species‑specific analysis of the best candidate species using single‑species databases.
+
+The pipeline includes a module for constructing and curating a custom reference database, which should be run once before the first analysis.
 
 ## License - please refer to LICENSE.md
 This repository is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
@@ -106,4 +112,12 @@ results_profiling/
 confidence_plots/ # plot summary of the analysis
 ├── mysample.gtdb.confidence_plot.png
 └── mysample.ncbi.confidence_plot.png
+├── mysample.gtdb.confidence_plot.svg
+└── mysample.ncbi.confidence_plot.svg
 ```
+
+**Example of confidence plot for one sample:**
+
+![Example confidence plot for a single sample. The plot shows 10 lines, with the y‑axis representing the percentage of classified reads and the x‑axis representing the Kraken confidence threshold. Listeria monocytogenes shows a prediction starting at 95% and maintains this value as the confidence threshold increases. The other tested species start at 60% or lower and drop immediately as the confidence threshold increases.](images/confidence_plot.png)
+
+> Signature of a clean isolate of *B. longum*. The percentage reported for each line represents the slope of the curve between confidence x=0.05 and confidence x=0.5.

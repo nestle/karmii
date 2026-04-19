@@ -1,169 +1,217 @@
-# See README.md for instructions on how to run the pipeline and the expected outputs.
-# See LICENSE.md and CONTRIBUTING.md for details on the license and how to contribute to the project.
-
-import pandas as pd
-import numpy as np
-import re
-from sklearn.manifold import MDS
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
-
-import sys
+# See README.md for run instructions and expected outputs.
+# See LICENSE.md and CONTRIBUTING.md for license and contribution details.
+# this script clusters groups (k-means) of genome based on their distances (mash)
+# and select representatives for each cluster
+# also produce a plot of the clusters and the selected representatives
 import logging
+import re
+import sys
 
-logger = logging.getLogger("scripts/cluster_and_select_genomes.py")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.manifold import MDS
+
+logger = logging.getLogger('scripts/cluster_and_select_genomes.py')
 logging.basicConfig(level=logging.INFO)
 
-# get taxid corresponding to the group
-taxid = '0'
-acc = 'NA'
-with open(sys.argv[3]) as gtdb_metadata:
-    for line in gtdb_metadata:
-        if line.strip().split('\t')[-2] == sys.argv[2]:
-            taxid = line.split('\t')[79]
-            acc = line.split('\t')[56]
-            break
+# parameters are passed as positional arguments from Nextflow.
+max_representatives = int(sys.argv[1])  # the number of clusters to create
+group_name = sys.argv[2]
+metadata_path = sys.argv[3]
+use_ncbi = sys.argv[4] == 'true'
+use_gtdb = sys.argv[5] == 'true'
+fasta_files = sys.argv[6:]  # all the fasta to use as a list
 
-with open('names.dmp') as gtdb_taxo_names:
-    for line in gtdb_taxo_names:
-        if acc in line:
-            gtdb_taxid = line.split('\t')[0]
 
-nl = 0
-for line in open("{}.distances.tsv".format(sys.argv[2])):
-    nl += 1
+def _write_annotated_fasta(
+    input_fasta: str,
+    output_fasta: str,
+    header: str,
+) -> None:
+    """
+    Write a new fasta file with the same sequence as the input fasta
+    but with an annotated header.
+    @param: input_fasta: the path to the input fasta file
+    @param: output_fasta: the path to the output fasta file to write
+    @param: header: the new header to write in the output fasta file
+    """
+    with open(output_fasta, 'w') as outp:
+        for line in open(input_fasta):
+            if line.startswith('>'):
+                line = header
+            outp.write(line)
 
-# load the ncbi_state of the genomes
-ncbi_state = pd.read_csv(sys.argv[3],
-                         usecols=['ncbi_genbank_assembly_accession',
-                                  'ncbi_keep'], sep="\t")
-ncbi_state = ncbi_state[ncbi_state['ncbi_keep'] == 1]
-if nl < 3:
-    for f in sys.argv[6:]:
-        if sys.argv[4] == "true":
-            if f.split('.')[0] in [v.split('.')[0] for v in ncbi_state[
-                    'ncbi_genbank_assembly_accession'].values.tolist()]:
-                with open('{}.selected.ncbi.fna'.format(f[:-4]), 'w') as outp:
-                    for line in open(f):
-                        if line.startswith(">"):
-                            line = '>{}|kraken:taxid|{}\n'.format(
-                                f[:-4], taxid)
-                        outp.write(line)
-        if sys.argv[5] == "true":
-            with open('{}.selected.gtdb.fna'.format(f[:-4]), 'w') as outp:
-                for line in open(f):
-                    if line.startswith(">"):
-                        line = f">{f[:-4]}|" \
-                               f"kraken:taxid|{gtdb_taxid}|gtdb_taxonomy\n"
-                    outp.write(line)
-    open('{}.plot.png'.format(sys.argv[2]), 'w').close()
-    exit(0)
 
-df = pd.read_csv("{}.distances.tsv".format(sys.argv[2]), sep='\t',
-                 names=['D1', 'D2', 'distance', 'P', 'Cov'],
-                 dtype={'A': str, 'B': str, 'distance': np.float64})
-logger.info('df loaded')
-df["D1"] = df["D1"].apply(lambda row: re.findall('GCA_[0-9]*', row)[0])
-df["D2"] = df["D2"].apply(lambda row: re.findall('GCA_[0-9]*', row)[0])
-logger.info('label shortened')
-logger.info('pivoting...')
-# Pivot the DataFrame into a matrix
-d_matrix = df.pivot(index='D1', columns='D2', values='distance')
-logger.info('pivoted')
+def _get_taxids(metadata_path: str, group_name: str) -> tuple[str, str]:
+    """
+    Get the NCBI and GTDB taxids of a group of genomes from the metadata file.
+    @param: metadata_path: the path to the metadata file
+    @param: group_name: the name of the group of genomes to get the taxids for
+    """
+    taxid = '0'
+    acc = 'NA'
+    with open(metadata_path) as gtdb_metadata:
+        for line in gtdb_metadata:
+            if line.strip().split('\t')[-2] == group_name:
+                taxid = line.split('\t')[79]
+                acc = line.split('\t')[56]
+                break
 
-# fix what need to be fixed
-# transpose the first column as first line
-d_matrix = pd.concat([pd.DataFrame(pd.Series(
-    [0.0], index=[d_matrix.iloc[:, 0].name]).add(
-    d_matrix.iloc[:, 0], fill_value=0),
-    columns=[d_matrix.iloc[:, 0].name]).transpose(), d_matrix], sort=False)
-# but remove values
-d_matrix.iloc[0, :] = 0.0
-d_matrix.fillna(0.0, inplace=True)
-# make an equilibrated matrix
-logger.info('equilibrating')
-d_matrix = d_matrix+d_matrix.transpose()
-logger.info('equilibrated')
+    gtdb_taxid = '0'
+    with open('names.dmp') as gtdb_taxo_names:
+        for line in gtdb_taxo_names:
+            if acc in line:
+                gtdb_taxid = line.split('\t')[0]
+                break
 
-# Perform MDS
-logger.info('MDS...')
-embedding = MDS(n_components=2, dissimilarity='precomputed')
-X_transformed = embedding.fit_transform(d_matrix)
-df_transformed = pd.DataFrame(
-    X_transformed, index=d_matrix.index,
-    columns=['Dimension 1', 'Dimension 2'], dtype=float)
-logger.info('done...')
+    return taxid, gtdb_taxid
 
-logger.info('Starting kmeans...')
-n = int(sys.argv[1])
-if len(X_transformed) < n:
-    n = len(X_transformed)
-    logger.info('reducing n to {}...'.format(n))
-kmeans = KMeans(n_clusters=n, random_state=0)
 
-# Fit the KMeans algorithm to the transformed points
-kmeans.fit(X_transformed)
+def _count_lines(path: str) -> int:
+    """
+    @param: path: the path to the file to count the lines of
+    """
+    n_lines = 0
+    for _ in open(path):
+        n_lines += 1
+    return n_lines
 
-# Get the cluster centroids
-selected_indices = kmeans.labels_
 
-selected_points = []
+def main() -> None:
+    taxid, gtdb_taxid = _get_taxids(metadata_path, group_name)
+    distance_tsv = f'{group_name}.distances.tsv'
+    n_lines = _count_lines(distance_tsv)
 
-# Loop through each centroid
-for centroid in kmeans.cluster_centers_:
-    # Calculate the distances from each data point to the centroid
-    distances = np.linalg.norm(X_transformed - centroid, axis=1)
+    ncbi_state = pd.read_csv(
+        metadata_path,
+        usecols=['ncbi_genbank_assembly_accession', 'ncbi_keep'],
+        sep='\t',
+    )
+    ncbi_state = ncbi_state[ncbi_state['ncbi_keep'] == 1]
+    ncbi_keep_accessions = {
+        value.split('.')[0]
+        for value in ncbi_state[
+            'ncbi_genbank_assembly_accession'
+        ].values.tolist()
+    }
 
-    # Find the index of the data point
-    # with the minimum distance to the centroid
-    closest_index = np.argmin(distances)
+    if n_lines < 3:
+        for fasta in fasta_files:
+            if use_ncbi and fasta.split('.')[0] in ncbi_keep_accessions:
+                _write_annotated_fasta(
+                    fasta,
+                    f'{fasta[:-4]}.selected.ncbi.fna',
+                    f'>{fasta[:-4]}|kraken:taxid|{taxid}\n',
+                )
+            if use_gtdb:
+                _write_annotated_fasta(
+                    fasta,
+                    f'{fasta[:-4]}.selected.gtdb.fna',
+                    f'>{fasta[:-4]}|kraken:taxid|{gtdb_taxid}|gtdb_taxonomy\n',
+                )
+        open(f'{group_name}.plot.png', 'w').close()
+        raise SystemExit(0)
 
-    # Get the closest data point
-    closest_point = X_transformed[closest_index]
+    df = pd.read_csv(
+        distance_tsv,
+        sep='\t',
+        names=['D1', 'D2', 'distance', 'P', 'Cov'],
+        dtype={'A': str, 'B': str, 'distance': np.float64},
+    )
+    logger.info('df loaded')
 
-    # Append the closest data point to the list
-    selected_points.append(closest_point)
+    df['D1'] = df['D1'].apply(lambda row: re.findall('GCA_[0-9]*', row)[0])
+    df['D2'] = df['D2'].apply(lambda row: re.findall('GCA_[0-9]*', row)[0])
+    logger.info('label shortened')
 
-for p in selected_points:
-    for f in sys.argv[6:]:
-        if str(df_transformed[(df_transformed['Dimension 1'] == p[0])
-                              & (df_transformed['Dimension 2'] == p[1])
-                              ].index[0]) in f:
-            if sys.argv[4] == "true":
-                if f.split('.')[0] in [v.split('.')[0] for v in ncbi_state[
-                         'ncbi_genbank_assembly_accession'].values.tolist()]:
-                    with open('{}.selected.ncbi.fna'.format(
-                            f[:-4]), 'w') as outp:
-                        for line in open(f):
-                            if line.startswith(">"):
-                                line = '>{}|kraken:taxid|{}\n'.format(
-                                    f[:-4], taxid)
-                            outp.write(line)
-            if sys.argv[5] == "true":
-                with open('{}.selected.gtdb.fna'.format(f[:-4]), 'w') as outp:
-                    for line in open(f):
-                        if line.startswith(">"):
-                            line = f">{f[:-4]}" \
-                                   f"|kraken:taxid|" \
-                                   f"{gtdb_taxid}|gtdb_taxonomy\n"
-                        outp.write(line)
+    logger.info('pivoting...')
+    d_matrix = df.pivot(index='D1', columns='D2', values='distance')
+    logger.info('pivoted')
 
-# plot the graph
+    d_matrix = pd.concat(
+        [
+            pd.DataFrame(
+                pd.Series([0.0], index=[d_matrix.iloc[:, 0].name]).add(
+                    d_matrix.iloc[:, 0], fill_value=0
+                ),
+                columns=[d_matrix.iloc[:, 0].name],
+            ).transpose(),
+            d_matrix,
+        ],
+        sort=False,
+    )
+    d_matrix.iloc[0, :] = 0.0
+    d_matrix.fillna(0.0, inplace=True)
+    d_matrix = d_matrix + d_matrix.transpose()
+    logger.info('equilibrated')
 
-# Assume X_transformed are your points in 2D after MDS
-# and selected_points are the points you selected
+    logger.info('MDS...')
+    embedding = MDS(n_components=2, dissimilarity='precomputed')
+    transformed = embedding.fit_transform(d_matrix)
+    transformed_df = pd.DataFrame(
+        transformed,
+        index=d_matrix.index,
+        columns=['Dimension 1', 'Dimension 2'],
+        dtype=float,
+    )
+    logger.info('done...')
 
-# Create a scatter plot of all points
-plt.scatter(X_transformed[:, 0], X_transformed[:, 1], color='blue',
-            label='All points')
+    logger.info('Starting kmeans...')
+    n_clusters = min(max_representatives, len(transformed))
+    if len(transformed) < max_representatives:
+        logger.info('reducing n to %s...', n_clusters)
 
-# Create a scatter plot of the selected points
-plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1],
-            color='red', label='Selected points')
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0)
+    kmeans.fit(transformed)
 
-# Add a legend
-plt.legend()
+    selected_points = []
+    for centroid in kmeans.cluster_centers_:
+        distances = np.linalg.norm(transformed - centroid, axis=1)
+        closest_index = np.argmin(distances)
+        selected_points.append(transformed[closest_index])
 
-# Save the plot as a PNG file
-plt.savefig('{}.plot.png'.format(sys.argv[2]))
-logging.info('All done...')
+    for point in selected_points:
+        for fasta in fasta_files:
+            is_selected = str(
+                transformed_df[
+                    (transformed_df['Dimension 1'] == point[0])
+                    & (transformed_df['Dimension 2'] == point[1])
+                ].index[0]
+            ) in fasta
+            if not is_selected:
+                continue
+
+            if use_ncbi and fasta.split('.')[0] in ncbi_keep_accessions:
+                _write_annotated_fasta(
+                    fasta,
+                    f'{fasta[:-4]}.selected.ncbi.fna',
+                    f'>{fasta[:-4]}|kraken:taxid|{taxid}\n',
+                )
+            if use_gtdb:
+                _write_annotated_fasta(
+                    fasta,
+                    f'{fasta[:-4]}.selected.gtdb.fna',
+                    f'>{fasta[:-4]}|kraken:taxid|{gtdb_taxid}|gtdb_taxonomy\n',
+                )
+
+    plt.scatter(
+        transformed[:, 0],
+        transformed[:, 1],
+        color='blue',
+        label='All points',
+    )
+    plt.scatter(
+        kmeans.cluster_centers_[:, 0],
+        kmeans.cluster_centers_[:, 1],
+        color='red',
+        label='Selected points',
+    )
+    plt.legend()
+    plt.savefig(f'{group_name}.plot.png')
+    logger.info('All done...')
+
+
+if __name__ == '__main__':
+    main()
