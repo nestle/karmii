@@ -46,9 +46,9 @@ params.downloads_validated = false
 
 > Refer to `https://www.nextflow.io/docs/latest/` for details about how to customize your Nextflow run
 
-4. (b) Some downloads may fail due to corrupted datasets or other reasons on the NCBI server side. Try rerunning `nextflow run prepare_database.nf -resume` a few times as some failures may not be systematic.
+4. (b) Some downloads may fail due to corrupted datasets or other reasons on the NCBI server side (affecting processes `get_genome_ncbi_states` and `download_genomes`). Try rerunning `nextflow run prepare_database.nf -resume` a few times as some failures may not be systematic.
 
-> Note: if you want to minimize the missing genomes, you can set `params.max_dl_per_request` to 1, although this will increase the time to download genomes dramatically.
+> Note: if you want to minimize the missing genomes, set `params.max_dl_per_request` to 1, although this will increase the time to download genomes.
 
 4. (c) At some point, some downloads will still fail, set the following parameter to true to indicate you are done trying to obtain all genomes
 

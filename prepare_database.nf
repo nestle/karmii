@@ -68,6 +68,7 @@ process metadata_filtering {
 }
 
 process get_genome_ncbi_states {
+    errorStrategy 'ignore'
     maxForks params.apikey ? params.apikeynjobs : 1
     publishDir 'metadata/ncbi_states/', mode: params.publish_mode, overwrite: true
     conda 'conda/get_genome_ncbi_states.yaml'
