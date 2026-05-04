@@ -55,11 +55,11 @@ Channel
  */
 process multi_profiling {
     label 'big_task'
-    publishDir 'results_profiling/multi/reads/',
+    publishDir "results_profiling/multi/reads/${sample_id}/",
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.reads_classification.tsv'
-    publishDir 'results_profiling/multi/profile/',
+    publishDir "results_profiling/multi/profile/${sample_id}/",
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.multi_profile.tsv'
@@ -125,8 +125,8 @@ process build_species_database {
     tuple val(species), val(taxonomy)
     each path(genome_clusters)
     each path(metadata)
-    each path(ncbi_dmp)
-    each path(gtdb_dmp)
+    each path(ncbi_multi_species_db)
+    each path(gtdb_multi_species_db)
 
     output:
     path(species)
@@ -135,11 +135,11 @@ process build_species_database {
     """
     mkdir -p $species/taxonomy
     if [[ $taxonomy == "gtdb" ]]; then
-        cp $gtdb_dmp/taxonomy/*.dmp $species/taxonomy
+        cp $gtdb_multi_species_db/taxonomy/*.dmp $species/taxonomy
         cat $metadata | cut -f20,110 | sed 's/ /_/g' | grep -P "${species}\t" | cut -f2 | \
             sort | uniq > groups
     else
-        cp $ncbi_dmp/taxonomy/*.dmp $species/taxonomy
+        cp $ncbi_multi_species_db/taxonomy/*.dmp $species/taxonomy
         cat $metadata | cut -f76,110 | sed 's/ /_/g' | grep -P "^${species}\t" | cut -f2 | \
             sort | uniq > groups
     fi
@@ -147,7 +147,7 @@ process build_species_database {
     for group in \$(cat groups)
     do
         find $genome_clusters/\$group/ -name "*.selected.${taxonomy}.fna" \
-            -exec kraken2-build --add-to-library {} --db ${species} \\; || true
+            -exec kraken2-build --no-masking --add-to-library {} --db ${species} \\; || true
     done
 
     kraken2-build --build --db ${species} --threads $task.cpus
@@ -157,19 +157,18 @@ process build_species_database {
 
 process single_profiling {
     label 'medium_task'
-    publishDir 'results_profiling/single/reads/',
+    publishDir "results_profiling/single/reads/${sample_id}/",
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.reads_classification.tsv'
-    publishDir 'results_profiling/single/profile/',
+    publishDir "results_profiling/single/profile/${sample_id}/",
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.single_profile.tsv'
     conda 'conda/kraken.yaml'
 
     input:
-    tuple val(species), val(taxonomy), val(sample_id), path(r1), path(r2)
-    path(all_single_dbs)
+    tuple val(species), val(taxonomy), val(sample_id), path(r1), path(r2), path(db)
 
     output:
     tuple path("${sample_id}.${taxonomy}.${species}.single_profile.tsv"),
@@ -196,7 +195,7 @@ process single_profiling {
 
 process taxonomic_confidence {
     label 'medium_task'
-    publishDir 'confidence_plots', mode: params.publish_mode, overwrite: true
+    publishDir "confidence_plots/${sample_id}/", mode: params.publish_mode, overwrite: true
     conda 'conda/confidence.yaml'
 
     input:
@@ -232,8 +231,6 @@ workflow {
         )
         .set { samples }
 
-    samples.view { it -> "processing ${it[0]}\n" }
-
     if (params.ncbi & params.gtdb) {
         ncbi_multi_species_db
             .concat(gtdb_multi_species_db)
@@ -267,19 +264,21 @@ workflow {
     ).set { single_species_dbs }
 
     single_species_dbs
-        .unique()
-        .collect()
-        .set { all_single_dbs }
+        .map { p -> [p.name.split('/')[-1], p] }
+        .set { dbs_with_species_as_key } // to be used below for combining with the samples channel
 
+    samples_with_candidate_species
+        .splitCsv()
+        .map { it -> [it[0][0], it[1], it[2], it[3], it[4]] }  // [species, taxonomy, sample_id, r1, r2]
+        .combine(dbs_with_species_as_key, by: 0)             // combine to provide the corresponding database → [species, taxonomy, sample_id, r1, r2, db_path]
+        .set { samples_for_single_profiling }
+    
     single_profiling(
-        samples_with_candidate_species
-            .splitCsv()
-            .map { it -> [it[0][0], it[1], it[2], it[3], it[4]] },
-        all_single_dbs
+        samples_for_single_profiling
     ).set { samples_with_single_profiles_and_reads_classification }
 
     taxonomic_confidence(
         taxonomic_confidence_script,
-        samples_with_single_profiles_and_reads_classification.groupTuple(by: [2, 3])
+        samples_with_single_profiles_and_reads_classification.groupTuple(by: [2, 3]) // group by taxonomy and sample_id → [profile, reads, taxonomy, sample_id]
     )
 }
