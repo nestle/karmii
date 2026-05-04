@@ -357,7 +357,8 @@ workflow {
                     if (item[0].getClass().getName() == 'sun.nio.fs.UnixPath') {
                         return [[item[0]], item[1]]
                     } else {
-                        return [item[0], item[1]]
+                        // and get rid of files that are not genomes in the case of multiple fasta downloaded for a group
+                        return [item[0].findAll { file -> !params.non_genome_patterns.any { pattern -> file.name.contains(pattern) } }, item[1]]
                     }
                 }
                 .set { genomes_and_groups }
