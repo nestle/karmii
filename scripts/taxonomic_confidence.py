@@ -202,8 +202,9 @@ def main() -> None:
     plt.legend()
 
     ax.axhline(y=0.95, color='lightgrey', linewidth=0.5, linestyle='-')
+    ax.axhline(y=0.90, color='lightgrey', linewidth=0.5, linestyle='-')
     ax.axvline(x=0.05, color='lightgrey', linewidth=0.5, linestyle='-')
-    ax.axvline(x=0.5, color='lightgrey', linewidth=0.5, linestyle='-')
+    ax.axvline(x=0.50, color='lightgrey', linewidth=0.5, linestyle='-')
 
     box = ax.get_position()
     ax.set_position([box.x0, box.y0, box.width * 0.4, box.height])
