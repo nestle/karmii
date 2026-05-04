@@ -199,6 +199,7 @@ def main() -> None:
     plt.xlabel('Confidence')
     plt.ylabel('Percent classified')
     plt.ylim(-0.05, 1.05)
+    plt.yticks(np.arange(0.0, 1.01, 0.1))
     plt.legend()
 
     ax.axhline(y=0.95, color='lightgrey', linewidth=0.5, linestyle='-')
