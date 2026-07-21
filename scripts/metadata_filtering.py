@@ -204,17 +204,18 @@ def main() -> None:
     gtdb_md['group'] = (
         gtdb_md.groupby(['ncbi_taxonomy', 'gtdb_taxonomy']).ngroup() + 1
     )
-    gtdb_md['group'] = gtdb_md['group'].astype(str) + '-' + ''.join(
-        random.choices(string.ascii_lowercase, k=10)
-    )
     logger.info(
         'Nb of group is %s once grouped by ncbi_taxonomy+gtdb_taxonomy',
         gtdb_md['group'].max(),
     )
+    gtdb_md['group'] = gtdb_md['group'].astype(str) + '-' + ''.join(
+        random.choices(string.ascii_lowercase, k=10)
+    )
 
-    gtdb_md = gtdb_md.sort_values('group')
+    gtdb_md_with_group = gtdb_md.sort_values('group')
+
     gtdb_md = (
-        gtdb_md.groupby('group')
+        gtdb_md_with_group.groupby('group', group_keys=False)
         .apply(
             lambda x: x.sample(
                 len(x) if len(x) < int(max_to_process_per_group)
@@ -222,6 +223,15 @@ def main() -> None:
             )
         )
         .reset_index(drop=True)
+    )
+
+    # Somehow despite groupby above returning the 'group' column, according to doc
+    # it is not present in the final dataframe (maybe a pandas version specific bug or feature).
+    # So I add the group back manually
+    gtdb_md = gtdb_md.merge(
+        gtdb_md_with_group[['accession', 'group']],
+        how='left',
+        on='accession',
     )
 
     gtdb_md.to_csv(output_path, sep='\t', index=False)
