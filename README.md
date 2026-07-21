@@ -8,6 +8,8 @@ The first step performs a standard Kraken analysis with a multi‑species databa
 
 The pipeline includes a module for constructing and curating a custom reference database, which should be run once before the first analysis.
 
+Tested with Nextflow version *26.04.6*
+
 ## License - please refer to LICENSE.md
 This repository is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
 In summary, you may use, modify, and share this code for non-commercial purposes only, with proper attribution.  

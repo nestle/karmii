@@ -13,33 +13,6 @@
  * and adds them to the Kraken2 databases.
  */
 
-/*
- * Channels
- */
-Channel
-    .fromPath('db_preparation_inputs/gtdb_metadata_*.tsv')
-    .set { raw_metadata }
-
-Channel
-    .fromPath('db_preparation_inputs/*taxdump.tar.gz')
-    .set { taxdump }
-
-Channel
-    .fromPath('scripts/metadata_filtering.py')
-    .set { metadata_filtering_script }
-
-Channel
-    .fromPath('scripts/ncbi_bad_states_filtering.py')
-    .set { ncbi_bad_states_filtering_script }
-
-Channel
-    .fromPath('scripts/cluster_and_select_genomes.py')
-    .set { cluster_and_select_genomes_script }
-
-Channel
-    .fromPath('scripts/fix_ncbi_taxids.py')
-    .set { fix_ncbi_taxids_script }
-
 params.downloaded = "${workflow.workDir}/downloaded.txt"
 
 /*
@@ -104,6 +77,8 @@ process ncbi_bad_states_filtering {
 
     script:
     """
+    # rm the downloaded genomes list to force an all re-download if this process is re-run
+    rm ${params.downloaded}
     python3 ${pythonScript} ${filtered_accessions} metadata_ncbi_state_annotated.tsv \
         ${genome_ncbi_states} 2>&1
     """
@@ -225,7 +200,7 @@ process fix_ncbi_taxonomy {
 
 process cluster_and_select_genomes {
     label 'big_task'
-    publishDir "clusters/${groups}", mode: params.publish_mode, overwrite: true
+    publishDir { "clusters/${groups}" }, mode: params.publish_mode, overwrite: true
     conda 'conda/cluster_and_select_genomes.yaml'
 
     input:
@@ -292,6 +267,34 @@ process krakendb_gtdb_add {
  * Workflow
  */
 workflow {
+
+    /*
+    * channels
+    */
+    channel
+        .fromPath('db_preparation_inputs/gtdb_metadata_*.tsv')
+        .set { raw_metadata }
+
+    channel
+        .fromPath('db_preparation_inputs/*taxdump.tar.gz')
+        .set { taxdump }
+
+    channel
+        .fromPath('scripts/metadata_filtering.py')
+        .set { metadata_filtering_script }
+
+    channel
+        .fromPath('scripts/ncbi_bad_states_filtering.py')
+        .set { ncbi_bad_states_filtering_script }
+
+    channel
+        .fromPath('scripts/cluster_and_select_genomes.py')
+        .set { cluster_and_select_genomes_script }
+
+    channel
+        .fromPath('scripts/fix_ncbi_taxids.py')
+        .set { fix_ncbi_taxids_script }
+
     if (params.ncbi || params.gtdb) {
         metadata_filtering(raw_metadata.first(), metadata_filtering_script)
             .set { metadata_filtered_once }
@@ -330,14 +333,14 @@ workflow {
         // repeat group numbers according to the number of batches of accessions
         // to download for each group
         ncbi_genbank_assembly_accessions_by_group
-            .map { item -> [item[0]] * item[1].size() }
+            .map { it -> [it[0]] * it[1].size() }
             .flatten()
             .set { repeated_group_numbers }
 
         // flatten batches of accessions to download for each group
         ncbi_genbank_assembly_accessions_by_group
-            .map { item -> item[1] }
-            .flatMap { it }
+            .map { it -> it[1] }
+            .flatMap { it -> it }
             .set { accessions }
 
         // merge repeated group numbers with accessions to get a tuple of (group, accession)
@@ -367,15 +370,15 @@ workflow {
             // and reconstitute the original grouping of genomes by group
             genomes_and_groups
                 .groupTuple(by: 1)
-                .map { [it[0].flatten(), it[1]] }
+                .map { it -> [it[0].flatten(), it[1]] }
                 .set { genomes_regrouped }
 
             genomes_regrouped
-                .map { it[0] }
+                .map { it -> it[0] }
                 .set { genomes }
 
             genomes_regrouped
-                .map { [it[1]] * it[0].size() }
+                .map { it -> [it[1]] * it[0].size() }
                 .set { groups }
 
             mash_sketch(genomes.flatten(), groups.flatten())
@@ -397,7 +400,7 @@ workflow {
                 .set { metadata_ready }
 
             prepare_gtdb_taxonomy(metadata_ready)
-                .map { item -> item[0] }
+                .map { it -> it[0] }
                 .set { gtdb_dmp }
 
             cluster_and_select_genomes(
@@ -409,12 +412,12 @@ workflow {
             ).set { clustered_and_selected_genomes }
 
             clustered_and_selected_genomes
-                .map { it[0] }
+                .map { it -> it[0] }
                 .flatten()
                 .set { genomes_for_kraken_ncbi }
 
             clustered_and_selected_genomes
-                .map { it[1] }
+                .map { it -> it[1] }
                 .flatten()
                 .set { genomes_for_kraken_gtdb }
 

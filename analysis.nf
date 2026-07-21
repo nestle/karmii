@@ -17,49 +17,15 @@
  */
 
 /*
- * Channels
- */
-Channel
-    .fromFilePairs('samples/*_R{1,2}*.fastq.gz', flat: true)
-    .set { paired_samples }
-
-Channel
-    .fromPath('samples/*.fastq.gz')
-    .filter { file ->
-        !(file.name =~ /.*_R1.*\.fastq.gz$/ || file.name =~ /.*_R2.*\.fastq.gz$/)
-    }
-    .set { single_samples }
-
-Channel
-    .fromPath('krakendbs/ncbi/')
-    .set { ncbi_multi_species_db }
-
-Channel
-    .fromPath('krakendbs/gtdb/')
-    .set { gtdb_multi_species_db }
-
-Channel
-    .fromPath('clusters/')
-    .set { genome_clusters }
-
-Channel
-    .fromPath('metadata/metadata_final.tsv')
-    .set { metadata }
-
-Channel
-    .fromPath('scripts/taxonomic_confidence.py')
-    .set { taxonomic_confidence_script }
-
-/*
  * Processes
  */
 process multi_profiling {
     label 'big_task'
-    publishDir "results_profiling/multi/reads/${sample_id}/",
+    publishDir { "results_profiling/multi/reads/${sample_id}/" },
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.reads_classification.tsv'
-    publishDir "results_profiling/multi/profile/${sample_id}/",
+    publishDir { "results_profiling/multi/profile/${sample_id}/" },
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.multi_profile.tsv'
@@ -104,21 +70,22 @@ process extract_candidate_species {
     script:
     if (taxonomy == 'gtdb') {
         """
-        cat $multi_profile | tr -s " " | grep -P "\tS\t" | sort -nr | \
-            head -n $params.nspecies | cut -f6 | sed 's/ /_/g' | \
-            sed 's/^_//' > candidates.tsv
+        for genus in \$(cat $multi_profile | tr -s " " | grep -P "\tG\t" | sort -nr | head -n $params.n_genus_species | cut -f6);do \
+        cat $multi_profile | tr -s " " | sort -nr | grep -P "\tS\t" | grep -P " \$(echo \$genus | sed 's/g_/s_/g') " | \
+        head -n $params.n_genus_species;done | cut -f6 | tr -s " " | sed 's/ /_/g' | sed 's/^_//' > candidates.tsv
         """
     } else {
         """
-        cat $multi_profile | tr -s " " | grep -P "\tS\t" | sort -nr | \
-            head -n $params.nspecies | cut -f5 > candidates.tsv
+        for genus in \$(cat $multi_profile | tr -s " " | grep -P "\tG\t" | sort -nr | head -n $params.n_genus_species | cut -f6);do \
+        cat $multi_profile | tr -s " " | sort -nr | grep -P "\tS\t" | grep -P " \$genus " | \
+        head -n $params.n_genus_species;done | cut -f5 > candidates.tsv
         """
     }
 }
 
 process build_species_database {
     label 'medium_task'
-    publishDir "species_db/${taxonomy}/", mode: params.publish_mode, overwrite: true
+    publishDir   { "species_db/${taxonomy}/" }, mode: params.publish_mode, overwrite: true
     conda 'conda/kraken.yaml'
 
     input:
@@ -157,11 +124,11 @@ process build_species_database {
 
 process single_profiling {
     label 'medium_task'
-    publishDir "results_profiling/single/reads/${sample_id}/",
+    publishDir { "results_profiling/single/reads/${sample_id}/" },
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.reads_classification.tsv'
-    publishDir "results_profiling/single/profile/${sample_id}/",
+    publishDir { "results_profiling/single/profile/${sample_id}/" },
         mode: params.publish_mode,
         overwrite: true,
         pattern: '*.single_profile.tsv'
@@ -195,7 +162,7 @@ process single_profiling {
 
 process taxonomic_confidence {
     label 'medium_task'
-    publishDir "confidence_plots/${sample_id}/", mode: params.publish_mode, overwrite: true
+    publishDir { "confidence_plots/${sample_id}/" }, mode: params.publish_mode, overwrite: true
     conda 'conda/confidence.yaml'
 
     input:
@@ -208,7 +175,7 @@ process taxonomic_confidence {
 
     script:
     """
-    python3 ${taxonomic_confidence_script} ${params.nspecies} ${task.cpus} ${sample_id} ${taxonomy}
+    python3 ${taxonomic_confidence_script} \$(ls *.single_profile.tsv | wc -l) ${task.cpus} ${sample_id} ${taxonomy}
     """
 }
 
@@ -216,12 +183,94 @@ process taxonomic_confidence {
  * Workflow
  */
 workflow {
+
+    /*
+    * channels
+    */
+    channel
+        .fromFilePairs('samples/*_R{1,2}*.fastq.gz', flat: true)
+        .set { paired_samples_gz }
+
+    channel
+        .fromFilePairs('samples/*_R{1,2}*.fastq', flat: true)
+        .set { paired_samples }
+
+    channel
+        .fromPath('samples/*.fastq.gz')
+        .filter { file ->
+            !(file.name =~ /.*_R1.*\.fastq.gz$/ || file.name =~ /.*_R2.*\.fastq.gz$/)
+        }
+        .set { single_samples_gz }
+
+    channel
+        .fromPath('samples/*.fastq')
+        .filter { file ->
+            !(file.name =~ /.*_R1.*\.fastq$/ || file.name =~ /.*_R2.*\.fastq$/)
+        }
+        .set { single_samples }
+
+    channel
+        .fromPath('samples/*.fasta.gz')
+        .set { fasta_samples_gz }
+
+    channel
+        .fromPath('samples/*.fasta')
+        .set { fasta_samples }
+
+    channel
+        .fromPath('krakendbs/ncbi/')
+        .set { ncbi_multi_species_db }
+
+    channel
+        .fromPath('krakendbs/gtdb/')
+        .set { gtdb_multi_species_db }
+
+    channel
+        .fromPath('clusters/')
+        .set { genome_clusters }
+
+    channel
+        .fromPath('metadata/metadata_final.tsv')
+        .set { metadata }
+
+    channel
+        .fromPath('scripts/taxonomic_confidence.py')
+        .set { taxonomic_confidence_script }
+
     // fuse the samples channels and
     // add a placeholder for the second read
     // in the case of single-end samples
-    paired_samples
+    paired_samples_gz
+        .concat(paired_samples)
+        .concat(
+            single_samples_gz.map { it ->
+                [
+                    it.toString().split('/')[-1].toString().split('\\.')[0],
+                    it,
+                    '/dev/null'
+                ]
+            }
+        )
         .concat(
             single_samples.map { it ->
+                [
+                    it.toString().split('/')[-1].toString().split('\\.')[0],
+                    it,
+                    '/dev/null'
+                ]
+            }
+        )
+        .concat(
+            fasta_samples_gz.map { it ->
+                [
+                    it.toString().split('/')[-1].toString().split('\\.')[0],
+                    it,
+                    '/dev/null'
+                ]
+            }
+        )
+        .concat(
+            fasta_samples.map { it ->
                 [
                     it.toString().split('/')[-1].toString().split('\\.')[0],
                     it,

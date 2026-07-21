@@ -1,3 +1,11 @@
+**v1.0.4**
+- Make the code compliant with strict Nextflow vocabulary (nf 26+)
+- Support as input samples *.fastq, *.fasta, *.fasta.gz in addition to *.fastq.gz
+- Change of parameter (and logic) `n_species` to `n_genus_species`
+- Fix a metadata filtering issue with recent pandas versions
+- Ensure to force redownload when necessary without manual action
+- Provide empty default input folders
+
 **v1.0.3**
 - Filter genomic files matching unwanted patterns (e.g. _cds_from_genomic, _rna_from_genomic)
 - Use `--no-masking` when building species specific dbs to ensure no k-mer is discarded
