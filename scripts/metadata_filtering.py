@@ -142,7 +142,7 @@ columns = ['accession',
 def main() -> None:
     gtdb_md = pd.read_csv(metadata_path, sep='\t', low_memory=False)[columns]
 
-    # drop columns that contains taxonomic annotations
+    # drop columns that contain taxonomic annotations
     # from other sources than GTDB and NCBI
     # and might create confusion
     columns_to_drop = [
@@ -205,7 +205,7 @@ def main() -> None:
         gtdb_md.groupby(['ncbi_taxonomy', 'gtdb_taxonomy']).ngroup() + 1
     )
     logger.info(
-        'Nb of group is %s once grouped by ncbi_taxonomy+gtdb_taxonomy',
+        'Nb of groups is %s once grouped by ncbi_taxonomy+gtdb_taxonomy',
         gtdb_md['group'].max(),
     )
     gtdb_md['group'] = gtdb_md['group'].astype(str) + '-' + ''.join(

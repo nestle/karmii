@@ -32,7 +32,7 @@ def main() -> None:
         with open(jfile_name, 'r') as jfile:
             jdata = json.load(jfile)
             for genome in jdata['reports']:
-                #  drop if not one these two states
+                #  drop if not one of these two states
                 if genome['assembly_info']['assembly_status'] not in [
                     'current',
                     'previous',

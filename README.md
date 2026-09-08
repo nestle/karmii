@@ -66,7 +66,7 @@ params.downloads_validated = true
 kraken2-build --threads n --build --db .
 ```
 
-> This is not automated with the nf worflow as it is rather resources consuming and careful evaluation of the resources is necessary for this step. When done, it will not affect the nf pipeline status so it will not rerun if nothing else has changed.
+> This is not automated with the nf workflow as it is rather resources consuming and careful evaluation of the resources is necessary for this step. When done, it will not affect the nf pipeline status so it will not rerun if nothing else has changed.
 
 > If you make changes that will retrigger the `prepare_database.nf` pipeline, first remove the `krakendbs/ncbi/` and `krakendbs/gtdb/` folders to ensure the next kraken2 database will be built using only the files selected by the last run of the nf pipeline (published folders in nf are not cleaned during a run). In doubt, always remove these folders and rerun the pipeline, it will recreate from the cache a clean versions of these folders, ready for a new manual call to `kraken2-build`.
 
