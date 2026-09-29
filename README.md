@@ -24,8 +24,38 @@ By contributing to this repository, you agree to the Contributor License Agreeme
 This pipeline uses third-party tools (e.g., kraken2, mash, matplotlib, pandas, scikit-learn, seaborn) under their respective licenses.  
 Please consult their documentation for license terms. This repository does **not** redistribute these tools or any external data.
 
+## Installation
+
+You need to clone the code in a dedicated location
+
+e.g.
+
+```bash
+git clone https://github.com/nestle/karmii.git karmii
+```
+
+This code contains two Nextflow pipelines and thus requires Nextflow (https://nextflow.io/) to be installed and able to work with conda (https://anaconda.org/). These websites will list the options for obtaining these tools.
+
+Alternatively, from the cloned directory, you can use the `Dockerfile` to build a containers with Docker or Podman that will install all dependencies and wrap the scripts.
+
+E.g., with Podman (https://podman.io/), and for Docker see (https://www.docker.com/)
+
+```bash
+cd karmii
+podman build -t karmii:latest .
+```
+
+Once built, you can run Nextflow as follows:
+
+```bash
+cd karmii
+podman run -it -v $(pwd):$(pwd) -w $(pwd) karmii nextflow run -resume /opt/karmii/prepare_database.nf
+podman run -it -v $(pwd):$(pwd) -w $(pwd) karmii nextflow run -resume /opt/karmii/analysis.nf
+```
+
+All the rest being identical to what is described in the userguide below.
+
 ## Userguide
-This code contains two Nextflow pipelines and thus requires Nextflow (https://nextflow.io/) to be installed and able to work with conda (https://anaconda.org/).
 
 `nextflow run prepare_database.nf -resume` will collect all genomes necessary for building the reference database. Prior to this, you will need to:
 
@@ -36,7 +66,10 @@ This code contains two Nextflow pipelines and thus requires Nextflow (https://ne
 2. Place a NCBI taxonomy dmp archive in `db_preparation_inputs/`following the pattern `*taxdump.tar.gz`.
 > For instance https://ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/new_taxdump.tar.gz
 
-3. Edit the `nextflow.config` file, which is documented to be self-explanatory.
+3. Edit the `nextflow.config` file, which is documented to be self-explanatory, after doing:
+```bash
+mv nextflow.config.default nextflow.config
+```
 
 Pay attention that this parameter remains set to `false` when you first run the `prepare_database.nf` workflow.
 
@@ -89,6 +122,7 @@ nextflow run analysis.nf -resume
 9. You will get your analysis results, as follows
 
 ```bash
+summary.tsv
 samples/
 ├── mysample_R1_001.fastq.gz
 └── mysample_R2_001.fastq.gz
