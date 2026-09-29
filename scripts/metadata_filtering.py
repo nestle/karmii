@@ -232,8 +232,9 @@ def main() -> None:
         gtdb_md_with_group[['accession', 'group']],
         how='left',
         on='accession',
+        suffixes=('_x', '')
     )
-
+    gtdb_md.drop(columns=["group_x"], errors="ignore", inplace=True)
     gtdb_md.to_csv(output_path, sep='\t', index=False)
     logger.info('%s DONE %s', '-' * 10, '-' * 10)
 

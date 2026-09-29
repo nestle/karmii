@@ -78,7 +78,7 @@ process ncbi_bad_states_filtering {
     script:
     """
     # rm the downloaded genomes list to force an all re-download if this process is re-run
-    rm ${params.downloaded}
+    rm ${params.downloaded} >/dev/null | true
     python3 ${pythonScript} ${filtered_accessions} metadata_ncbi_state_annotated.tsv \
         ${genome_ncbi_states} 2>&1
     """
@@ -105,7 +105,7 @@ process download_genomes {
     """
     datasets download genome accession ${groups_and_accessions[1..-1].join(' ')} \
         ${params.apikey ? '--api-key ' + params.apikey : ''} --no-progressbar --dehydrated
-    unzip -n ncbi_dataset.zip
+    python3 -c "from zipfile import ZipFile; ZipFile('ncbi_dataset.zip').extractall('.')"
     datasets rehydrate --directory .
     mv ncbi_dataset/data/*/*.fna .
     chmod 660 *.fna
@@ -280,19 +280,19 @@ workflow {
         .set { taxdump }
 
     channel
-        .fromPath('scripts/metadata_filtering.py')
+        .fromPath("${projectDir}/scripts/metadata_filtering.py")
         .set { metadata_filtering_script }
 
     channel
-        .fromPath('scripts/ncbi_bad_states_filtering.py')
+        .fromPath("${projectDir}/scripts/ncbi_bad_states_filtering.py")
         .set { ncbi_bad_states_filtering_script }
 
     channel
-        .fromPath('scripts/cluster_and_select_genomes.py')
+        .fromPath("${projectDir}/scripts/cluster_and_select_genomes.py")
         .set { cluster_and_select_genomes_script }
 
     channel
-        .fromPath('scripts/fix_ncbi_taxids.py')
+        .fromPath("${projectDir}/scripts/fix_ncbi_taxids.py")
         .set { fix_ncbi_taxids_script }
 
     if (params.ncbi || params.gtdb) {
