@@ -162,7 +162,7 @@ process single_profiling {
 
 process taxonomic_confidence {
     label 'medium_task'
-    publishDir { "confidence_plots/${sample_id}/" }, mode: params.publish_mode, overwrite: true
+    publishDir { "confidence_plots/${sample_id}/" }, mode: params.publish_mode, overwrite: true, pattern: '*.confidence_plot.*'
     conda 'conda/confidence.yaml'
 
     input:
@@ -170,12 +170,59 @@ process taxonomic_confidence {
     tuple path(profile), path(reads), val(taxonomy), val(sample_id)
 
     output:
-    path('*.confidence_plot.png')
-    path('*.confidence_plot.svg')
+    tuple path('*.confidence_plot.png'), path('*.confidence_plot.svg'), path('values_for_decision.txt'), val(taxonomy), val(sample_id)
 
     script:
     """
     python3 ${taxonomic_confidence_script} \$(ls *.single_profile.tsv | wc -l) ${task.cpus} ${sample_id} ${taxonomy}
+    # and extract the important values for the summary step
+    for x in *.*.*.reads_classification.tsv.conf.txt;do a=\$(grep -P "^0.5000," \$x | cut -f2 -d",");b=\$(grep -P "^0.0500," \$x | cut -f2 -d",");echo \$a","\$b",";done | sort -nr | head -n 2 > values_for_decision.txt
+    """
+}
+
+process summary {
+    label 'medium_task'
+    publishDir { "./tmp" }, mode: params.publish_mode, overwrite: true
+    input:
+    tuple val(taxonomy), val(sample_id), path(single_values_for_decision), path(multi_profiles)
+
+    output:
+    path('*.summary.tsv')
+
+    script:
+    """
+    #!/usr/bin/env python
+    r=[[float(x) for x in l.strip().split(',')[0:2]] for l in open('${single_values_for_decision}')]
+    # r[0] is first species, r[1] is second species
+    # r[x][0] is the confidence at 0.5
+    # r[x][1] is the confidence at 0.05
+    with open('${sample_id}.${taxonomy}.summary.tsv', 'w') as out:
+        try:
+            # validate that the slope is above -20%
+            test1=(r[0][0]-r[0][1])/(0.5-0.05) > -0.2
+            # validate that the confidence at 0.05 is above 0.95
+            test2=r[0][1]>0.95
+            # validate the separation of the two lines at conf 0.5
+            test3=r[1][0]<=r[0][0]-0.05
+            out.write(f'${sample_id}\t${taxonomy}\t{test1}\t{test2}\t{test3}\t{"PASS" if test1 and test2 and test3 else "FAIL"}\\n')
+        except IndexError:
+            out.write(f'${sample_id}\t${taxonomy}\tERROR\tERROR\tERROR\tFAIL\\n')
+        """
+}
+
+process concat_summary {
+    label 'medium_task'
+    publishDir { "./" }, mode: params.publish_mode, overwrite: true
+    input:
+    path(summary)
+
+    output:
+    path('summary.tsv')
+
+    script:
+    """
+    echo -e 'sample_id\ttaxonomy\tslope > -20%\ty@x=0.05 > 0.95\tsp2@0.5 << sp1@0.5\tstatus' > summary.tsv
+    cat ${summary} | sort -n >> summary.tsv
     """
 }
 
@@ -329,5 +376,11 @@ workflow {
     taxonomic_confidence(
         taxonomic_confidence_script,
         samples_with_single_profiles_and_reads_classification.groupTuple(by: [2, 3]) // group by taxonomy and sample_id → [profile, reads, taxonomy, sample_id]
-    )
+    ).set { taxonomic_confidence_results }
+
+    // produce a summary based on the multi profile and the single profiles important values
+    samples_with_multi_profiles_and_reads_classification.map{it -> [it[0],it[1],it[2]]}.set{ multi  }
+    taxonomic_confidence_results.map{ it -> [it[2], it[3], it[4]] }.set{ single_values_for_decision }
+    concat_summary(summary(single_values_for_decision.join(multi,by:[2,3]).map{ it -> [it[2], it[0], it[1], it[3]] }).collect())
+
 }
