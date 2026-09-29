@@ -23,7 +23,6 @@ taxonomy = sys.argv[4]
 thresholds = list(range(0, 100, 5)) + [100]
 colorblind_palette = sns.color_palette('colorblind', int(nb_species))
 
-
 def calculate_confidence(read: str) -> float:
     """
     Calculate the confidence above which a read is classifed
@@ -197,22 +196,28 @@ def main() -> None:
         print('taxonomic_confidence:ERROR:no file to process')
 
     plt.xlabel('Confidence')
-    plt.ylabel('Percent classified')
+    plt.ylabel('Proportion classified')
     plt.ylim(-0.05, 1.05)
     plt.yticks(np.arange(0.0, 1.01, 0.1))
-    plt.legend()
 
     ax.axhline(y=0.95, color='lightgrey', linewidth=0.5, linestyle='-')
-    ax.axhline(y=0.90, color='lightgrey', linewidth=0.5, linestyle='-')
     ax.axvline(x=0.05, color='lightgrey', linewidth=0.5, linestyle='-')
     ax.axvline(x=0.50, color='lightgrey', linewidth=0.5, linestyle='-')
 
-    box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.4, box.height])
-    ax.legend(loc='center left', bbox_to_anchor=(1, 0.4), handletextpad=0.2)
+    ax.legend(
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0,
+        handletextpad=0.2,
+        fontsize=10,
+    )
+    ax.set_aspect('equal')
 
-    plt.savefig(f'{sample}.{taxonomy}.confidence_plot.png', dpi=600)
-    plt.savefig(f'{sample}.{taxonomy}.confidence_plot.svg')
+    # crop the canvas to the axes + legend so the figure has no extra margin
+    save_kwargs = {'bbox_inches': 'tight', 'pad_inches': 0.05}
+    plt.savefig(
+        f'{sample}.{taxonomy}.confidence_plot.png', dpi=600, **save_kwargs
+    )
+    plt.savefig(f'{sample}.{taxonomy}.confidence_plot.svg', **save_kwargs)
 
 
 if __name__ == '__main__':
