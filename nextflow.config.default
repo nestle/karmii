@@ -4,8 +4,8 @@
 executor.cpus = 8
 
 process {
-    //executor = 'local'
-    executor = 'lsf'
+    executor = 'local'
+    //executor = 'lsf'
     maxForks = 100
     cpus = 1
     memory = ''
@@ -36,7 +36,7 @@ conda.useMamba = true
 params.gtdb = true
 params.ncbi = true
 
-// https://www.nextflow.io/docs/latest/reference/process.html#publishdir
+// https://docs.seqera.io/nextflow/reference/process/directives/publish-dir
 params.publish_mode = 'symlink'
 
 // params specific to prepare references
