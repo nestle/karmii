@@ -1,7 +1,11 @@
+**v1.0.6**
+- [debug] Fix a certificate issue with the Dockerfile
+
 **v1.0.5**
 - Add an installation section to the README
 - Add a Dockerfile and adapt some parts of the code to be compatible with containerisation
 - Add a summary to facilitate decision-making
+
 **v1.0.4**
 - Make the code compliant with strict Nextflow vocabulary (nf 26+)
 - Support as input files *.fastq, *.fasta, *.fasta.gz in addition to *.fastq.gz

@@ -1,4 +1,5 @@
 FROM anaconda/miniconda:latest
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificate
 # Limit conda channels to those that are free for use in any context
 RUN echo -e "channel_priority: flexible\n\
 channels:\n\
