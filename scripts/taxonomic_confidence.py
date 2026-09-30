@@ -2,8 +2,8 @@
 
 # See README.md for run instructions and expected outputs.
 # See LICENSE.md and CONTRIBUTING.md for license and contribution details.
-# this script explore the kraken reads
-# classification and produce the confidence plot
+# this script explores the kraken reads
+# classification and produces the confidence plot
 
 import glob
 import sys
@@ -25,7 +25,7 @@ colorblind_palette = sns.color_palette('colorblind', int(nb_species))
 
 def calculate_confidence(read: str) -> float:
     """
-    Calculate the confidence above which a read is classifed
+    Calculate the confidence above which a read is classified
     @param: read: the string containing the kraken2 classification of a read
     """
     total_taxid = 0
