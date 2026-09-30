@@ -1,3 +1,6 @@
+**v1.0.7**
+- [debug] Fix a certificate issue with the Dockerfile
+
 **v1.0.6**
 - [debug] Fix a certificate issue with the Dockerfile
 
