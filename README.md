@@ -53,6 +53,15 @@ podman run -it -v $(pwd):$(pwd) -w $(pwd) karmii nextflow run -resume /opt/karmi
 podman run -it -v $(pwd):$(pwd) -w $(pwd) karmii nextflow run -resume /opt/karmii/analysis.nf
 ```
 
+If you experience caching issues with containers, such as processes being retriggered when using -resume despite no changes affecting the process, use the lenient cache mode. Edit the configuration file as follows:
+
+```yaml
+process {
+    cache = 'lenient'
+    ...
+}
+```
+
 All the rest being identical to what is described in the userguide below.
 
 ## Userguide

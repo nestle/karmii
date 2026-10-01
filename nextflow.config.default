@@ -4,6 +4,7 @@
 executor.cpus = 8
 
 process {
+    cache = true
     executor = 'local'
     //executor = 'lsf'
     maxForks = 100
