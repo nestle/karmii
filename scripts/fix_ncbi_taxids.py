@@ -1,5 +1,5 @@
 # See README.md for run instructions and expected outputs.
-# See LICENSE.md and CONTRIBUTING.md for license and contribution details.
+# See also LICENSE.md.
 # this script takes the metadata file and the NCBI taxonomy dump files
 # to fix the NCBI taxids in the metadata file
 

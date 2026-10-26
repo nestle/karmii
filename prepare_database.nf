@@ -1,9 +1,6 @@
 /*
  * See README.md for instructions on how to run the pipeline and the expected outputs.
- * See LICENSE.md and CONTRIBUTING.md for license and contribution details.
- */
-
- /*
+ *
  * This nf pipeline prepares the databases for Kraken2 profiling.
  * It takes as input the GTDB metadata and the NCBI taxonomy dump,
  * filters the metadata according to user-defined quality thresholds,
@@ -11,6 +8,19 @@
  * clusters them by group,
  * selects representatives from each cluster,
  * and adds them to the Kraken2 databases.
+ *
+ * Copyright © 2026 Société des Produits Nestlé SA. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 3 as published by
+ * the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 params.downloaded = "${workflow.workDir}/downloaded.txt"

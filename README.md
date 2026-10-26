@@ -10,19 +10,27 @@ The pipeline includes a module for constructing and curating a custom reference 
 
 Tested with Nextflow version *26.04.6*
 
+## Copyright
+
+© 2026 Société des Produits Nestlé SA. All Rights Reserved.
+
 ## License - please refer to LICENSE.md
-This repository is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).  
-In summary, you may use, modify, and share this code for non-commercial purposes only, with proper attribution.  
-Commercial use is prohibited except by copyright holder.
+This repository is licensed under the GNU General Public License Version 3 (GPLv3).
 
-Full license text: [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
+You may use, modify and redistribute this software in accordance with the terms of the GPLv3.
 
-## Contributions - please refer to CONTRIBUTING.md
-By contributing to this repository, you agree to the Contributor License Agreement (CLA), which grants the copyright holder of the original work in this repository full rights to use and commercialize your contributions.  
+This program is distributed WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Please refer to the LICENSE file for the complete licence terms.
+
+## Contributions
+
+Contributions to this repository are accepted under the terms of the GNU General Public License Version 3 (GPLv3).
 
 ## External Dependencies
-This pipeline uses third-party tools (e.g., kraken2, mash, matplotlib, pandas, scikit-learn, seaborn) under their respective licenses.  
-Please consult their documentation for license terms. This repository does **not** redistribute these tools or any external data.
+This pipeline uses third-party tools (e.g., kraken2, mash, matplotlib, pandas, scikit-learn, seaborn) under their respective licenses.
+
+Please consult their documentation for license terms. Unless expressly stated otherwise, this repository does **not** redistribute these tools or any external data.
 
 ## Installation
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # See README.md for run instructions and expected outputs.
-# See LICENSE.md and CONTRIBUTING.md for license and contribution details.
+# See also LICENSE.md.
 # this script explore the kraken reads
 # classification and produce the confidence plot
 

@@ -1,5 +1,5 @@
 # See README.md for run instructions and expected outputs.
-# See LICENSE.md and CONTRIBUTING.md for license and contribution details.
+# See also LICENSE.md.
 # this script filters the GTDB metadata file
 # to keep only genomes matching our quality criteria
 

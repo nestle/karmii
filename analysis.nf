@@ -1,9 +1,6 @@
 /*
  * See README.md for instructions on how to run the pipeline and the expected outputs.
- * See LICENSE.md and CONTRIBUTING.md for license and contribution details.
- */
-
- /*
+ *
  * This nf pipeline performs taxonomic profiling of metagenomic samples using Kraken2.
  * It takes as input the raw reads of the samples,
  * the Kraken2 databases, 
@@ -14,6 +11,19 @@
  * and builds single-species databases for the identified candidates.
  * It then performs a second round of profiling using the single-species databases,
  * and generates confidence plots for the taxonomic assignments. 
+ *
+ * Copyright © 2026 Société des Produits Nestlé SA. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 3 as published by
+ * the Free Software Foundation.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
  */
 
 /*

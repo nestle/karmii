@@ -1,5 +1,5 @@
 # See README.md for run instructions and expected outputs.
-# See LICENSE.md and CONTRIBUTING.md for license and contribution details.
+# See also LICENSE.md.
 # this script clusters groups (k-means) of genome based on their distances (mash)
 # and select representatives for each cluster
 # also produce a plot of the clusters and the selected representatives
